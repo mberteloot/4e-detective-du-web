@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Détective du Web</title>
+  <meta name="description" content="Retrouve l'adresse IP d'un site Internet et découvre dans quel pays se trouve son serveur.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕵️</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="entete">
+    <div class="entete-titre">
+      <span class="logo" aria-hidden="true">🕵️</span>
+      <div>
+        <h1>Détective du Web</h1>
+        <p class="sous-titre">Où se cache vraiment un site Internet ?</p>
+      </div>
+    </div>
+    <div class="score" id="boite-score" title="Tes points de détective">
+      <span class="score-valeur" id="score">0</span>
+      <span class="score-label">points</span>
+    </div>
+  </header>
+
+  <div class="bandeau-secours" id="bandeau-secours" hidden>
+    🛟 <strong>Mode secours</strong> : le réseau bloque l'annuaire en ligne.
+    Les sites de la liste fonctionnent quand même (adresses enregistrées le <span id="date-secours"></span>).
+  </div>
+
+  <main>
+    <!-- ÉTAPE 1 : DNS -->
+    <section class="carte-etape" aria-labelledby="titre-etape1">
+      <div class="etape-numero">1</div>
+      <div class="etape-contenu">
+        <h2 id="titre-etape1">L'annuaire d'Internet</h2>
+        <p class="explication">
+          Les ordinateurs ne comprennent pas les noms comme <em>tiktok.com</em> : ils utilisent des numéros,
+          les <strong>adresses IP</strong>. Le <strong>DNS</strong> est l'annuaire qui traduit un nom en adresse IP.
+        </p>
+        <form class="ligne-saisie" id="form-dns" autocomplete="off">
+          <label class="visuellement-cache" for="saisie-domaine">Nom de domaine</label>
+          <input id="saisie-domaine" type="text" inputmode="url" spellcheck="false"
+                 placeholder="ex : alibaba.com" required>
+          <button type="submit" class="bouton-principal">Chercher l'IP 🔎</button>
+        </form>
+        <div class="suggestions" id="suggestions" aria-label="Sites à essayer"></div>
+        <div class="resultat" id="resultat-dns" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- ÉTAPE 2 : GÉOLOCALISATION -->
+    <section class="carte-etape" aria-labelledby="titre-etape2">
+      <div class="etape-numero">2</div>
+      <div class="etape-contenu">
+        <h2 id="titre-etape2">Où se trouve ce serveur ?</h2>
+        <p class="explication">
+          Chaque adresse IP est attribuée à un pays. Clique sur une IP trouvée à l'étape 1, ou tape une adresse IP.
+        </p>
+        <form class="ligne-saisie" id="form-ip" autocomplete="off">
+          <label class="visuellement-cache" for="saisie-ip">Adresse IP</label>
+          <input id="saisie-ip" type="text" inputmode="decimal" spellcheck="false"
+                 placeholder="ex : 47.246.131.198" required>
+          <button type="submit" class="bouton-principal">Localiser 📍</button>
+        </form>
+
+        <div class="pari" id="pari" hidden>
+          <p class="pari-question">🎲 <strong>Fais ton pari !</strong> Sur quel continent se trouve le serveur ?</p>
+          <div class="pari-choix" id="pari-choix"></div>
+          <button type="button" class="bouton-lien" id="pari-passer">Je ne parie pas, montre-moi</button>
+        </div>
+
+        <div class="resultat" id="resultat-ip" aria-live="polite"></div>
+
+        <figure class="carte-monde">
+          <svg id="carte" role="img" aria-label="Carte du monde"></svg>
+          <figcaption>Carte centrée sur le Pacifique : le point jaune, c'est toi à Hong Kong.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- CARNET -->
+    <section class="carte-etape carnet" aria-labelledby="titre-carnet">
+      <div class="etape-numero">📒</div>
+      <div class="etape-contenu">
+        <h2 id="titre-carnet">Mon carnet d'enquête</h2>
+
+        <h3>🎯 Défis</h3>
+        <ul class="defis" id="defis"></ul>
+
+        <h3>🛂 Passeport <span class="compteur" id="compteur-tampons"></span></h3>
+        <div class="tampons" id="tampons">
+          <p class="vide">Aucun tampon pour l'instant : localise ton premier serveur !</p>
+        </div>
+
+        <h3>🗂️ Mes découvertes</h3>
+        <div class="tableau-defilant">
+          <table class="historique">
+            <thead><tr><th>Site</th><th>Adresse IP</th><th>Pays</th></tr></thead>
+            <tbody id="historique"><tr class="vide"><td colspan="3">Rien pour l'instant.</td></tr></tbody>
+          </table>
+        </div>
+
+        <button type="button" class="bouton-lien" id="recommencer">Effacer mon carnet et recommencer</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pied">
+    <p>🔒 Cette page n'enregistre rien sur toi : ton carnet reste uniquement dans ce navigateur.</p>
+    <p class="sources">
+      Annuaire : Google Public DNS, Cloudflare ·
+      <a href="https://db-ip.com" target="_blank" rel="noopener">IP Geolocation by DB-IP</a> (CC BY 4.0, <span id="version-base"></span>) ·
+      Carte : Natural Earth
+    </p>
+  </footer>
+
+  <!-- Données (fichiers .js pour fonctionner même sans serveur) -->
+  <script src="data/ip-pays.js"></script>
+  <script src="data/carte.js"></script>
+  <script src="data/hors-ligne.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
