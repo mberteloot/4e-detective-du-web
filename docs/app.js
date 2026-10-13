@@ -37,7 +37,7 @@
     { id: 'alibaba', texte: 'Trouve le pays du serveur de alibaba.com', points: 10 },
     { id: 'france', texte: 'Trouve un site dont le serveur est en France', points: 15 },
     { id: 'plusieurs', texte: 'Trouve un site qui a plusieurs adresses IP', points: 10 },
-    { id: 'loin', texte: 'Trouve un serveur à plus de 10 000 km de Hong Kong', points: 15 },
+    { id: 'loin', texte: 'Trouve un serveur à plus de 10 000 km de toi', points: 15 },
     { id: 'continents', texte: 'Tamponne ton passeport sur 3 continents différents', points: 20 },
     { id: 'privee', texte: 'Teste une adresse IP privée (indice : elle commence par 192.168)', points: 10 },
     { id: 'parieur', texte: 'Gagne 3 paris', points: 15 },
@@ -407,10 +407,90 @@
     svg.appendChild(groupePays);
     svg.appendChild(creerSvg('g', { id: 'calque-trajet' }));
     const [x, y] = C.depart.xy;
-    svg.appendChild(creerSvg('circle', { cx: x, cy: y, r: 6, class: 'depart-halo' }));
-    svg.appendChild(creerSvg('circle', { cx: x, cy: y, r: 6, class: 'depart' }));
+    const halo = creerSvg('circle', { id: 'moi-halo', cx: x, cy: y, r: 6, class: 'depart-halo' });
+    const point = creerSvg('circle', { id: 'moi-point', cx: x, cy: y, r: 6, class: 'depart' });
+    point.appendChild(creerSvg('title'));
+    svg.append(halo, point);
     colorierPaysVisites();
   }
+
+  // =========================================================================
+  // Toi sur Internet : l'adresse IP publique de l'élève place le point jaune
+  // =========================================================================
+
+  // Un navigateur ne connaît pas son adresse IP publique : on la demande à un service extérieur.
+  const SERVICES_MON_IP = [
+    { url: 'https://api.ipify.org?format=json', lire: async (r) => (await r.json()).ip },
+    { url: 'https://www.cloudflare.com/cdn-cgi/trace', lire: async (r) => ((await r.text()).match(/^ip=(.+)$/m) || [])[1] },
+  ];
+
+  // Par défaut (service bloqué) : Hong Kong
+  const moi = { ip: null, code: C.depart.code, nom: C.depart.nom, xy: C.depart.xy, lonLat: C.depart.lonLat, trouve: false };
+
+  async function trouverMonIP() {
+    for (const service of SERVICES_MON_IP) {
+      const controleur = new AbortController();
+      const minuterie = setTimeout(() => controleur.abort(), DELAI_DNS_MS);
+      try {
+        const reponse = await fetch(service.url, { signal: controleur.signal });
+        if (!reponse.ok) continue;
+        const a = analyserIP(String((await service.lire(reponse)) || ''));
+        if (a.ok && a.type === 'publique') return a;
+      } catch (e) {
+        /* service suivant */
+      } finally {
+        clearTimeout(minuterie);
+      }
+    }
+    return null;
+  }
+
+  async function localiserMoi() {
+    $('moi').innerHTML = '<p class="moi-texte">🛰️ Je cherche ton adresse IP sur Internet…</p>';
+    const a = await trouverMonIP();
+    moi.trouve = false;
+    if (a) {
+      moi.ip = a.texte;
+      const code = paysDeIP(a.entier);
+      const centre = C.centres[code];
+      if (centre && code !== 'ZZ') {
+        Object.assign(moi, { code, nom: nomPays(code), xy: [centre[0], centre[1]], lonLat: [centre[2], centre[3]], trouve: true });
+      }
+    }
+    placerPointJaune();
+    afficherMoi();
+  }
+
+  function placerPointJaune() {
+    for (const id of ['moi-halo', 'moi-point']) {
+      $(id).setAttribute('cx', moi.xy[0]);
+      $(id).setAttribute('cy', moi.xy[1]);
+    }
+    $('moi-point').querySelector('title').textContent = moi.trouve
+      ? `Toi : ${moi.ip} (${moi.nom})` : 'Toi (position par défaut : Hong Kong)';
+    $('legende-carte').textContent = moi.trouve
+      ? `Carte centrée sur le Pacifique. Le point jaune, c'est toi : il est placé grâce à ton adresse IP (${moi.ip}), au centre du pays où elle est enregistrée (${moi.nom}).`
+      : 'Carte centrée sur le Pacifique. Le point jaune, c\'est toi : ton adresse IP n\'a pas pu être trouvée, il est placé par défaut à Hong Kong.';
+  }
+
+  function afficherMoi() {
+    if (!moi.trouve) {
+      $('moi').innerHTML = `<p class="moi-texte">🪪 <strong>Toi sur Internet</strong> : impossible de trouver ton adresse IP
+        ${moi.ip ? `(${echapper(moi.ip)} n'est attribuée à aucun pays)` : '(le réseau bloque peut-être le service)'}.
+        Le point jaune de la carte est placé <strong>par défaut à Hong Kong</strong>.</p>
+        <button type="button" class="bouton-lien" id="reessayer-moi">Réessayer</button>`;
+      return;
+    }
+    const loinDeHK = moi.code !== 'HK';
+    $('moi').innerHTML = `<div class="moi-ligne">${htmlDrapeau(moi.code, true)}<div>
+        <p class="moi-titre">🪪 Toi sur Internet</p>
+        <p class="moi-texte">Ton adresse IP publique : <code class="moi-ip">${echapper(moi.ip)}</code> · Pays : <strong>${echapper(moi.nom)}</strong></p>
+        <p class="moi-texte">C'est l'adresse que voient <strong>tous les sites</strong> que tu visites. Le <span class="pastille-moi" aria-hidden="true"></span> <strong>point jaune</strong> de la carte (étape 2) est placé grâce à elle, au centre du pays : une adresse IP ne donne pas ta position exacte.</p>
+        ${loinDeHK ? `<p class="moi-texte moi-surprise">🤔 Tu n'es pourtant pas dans ce pays (${echapper(moi.nom)}) ? Ton réseau passe sans doute par un <strong>serveur intermédiaire</strong> (proxy du collège, VPN…) : les sites croient que tu es là-bas !</p>` : ''}
+      </div></div>
+      <button type="button" class="bouton-lien" id="localiser-moi">Localiser mon adresse à l'étape 2 📍</button>`;
+  }
+
 
   function colorierPaysVisites() {
     document.querySelectorAll('#carte .pays[data-code]').forEach((p) => {
@@ -427,7 +507,7 @@
 
     const centre = C.centres[code];
     if (!centre) return;
-    const [x1, y1] = C.depart.xy;
+    const [x1, y1] = moi.xy;
     const [x2, y2] = centre;
     const longueur = Math.hypot(x2 - x1, y2 - y1);
 
@@ -627,7 +707,7 @@
 
     const continent = C.continents[code];
     const centre = C.centres[code];
-    const distance = centre ? distanceKm(C.depart.lonLat, [centre[2], centre[3]]) : null;
+    const distance = centre ? distanceKm(moi.lonLat, [centre[2], centre[3]]) : null;
 
     let messagePari = '';
     if (pari) {
@@ -648,8 +728,9 @@
     }
 
     let detailDistance = '';
-    if (code === 'HK') detailDistance = 'Le serveur est à Hong Kong, tout près de toi !';
-    else if (distance !== null) detailDistance = `À environ ${formaterKm(distance)} de Hong Kong`;
+    if (ip === moi.ip) detailDistance = 'C\'est toi !';
+    else if (code === moi.code) detailDistance = `Dans le même pays que toi (${moi.nom}) !`;
+    else if (distance !== null) detailDistance = `À environ ${formaterKm(distance)} de toi (${moi.nom})`;
 
     $('resultat-ip').innerHTML =
       htmlDecomposition(analyserIP(ip).octets) +
@@ -694,6 +775,8 @@
       `<button type="button" data-continent="${c}">${CONTINENTS[c]}</button>`).join('');
 
     dessinerCarte();
+    placerPointJaune();
+    localiserMoi();
     afficherDefis();
     afficherTampons();
     afficherHistorique();
@@ -724,7 +807,13 @@
         return;
       }
       const choix = e.target.closest('[data-continent]');
-      if (choix) reveler(choix.dataset.continent);
+      if (choix) { reveler(choix.dataset.continent); return; }
+      if (e.target.id === 'reessayer-moi') { localiserMoi(); return; }
+      if (e.target.id === 'localiser-moi') {
+        $('saisie-ip').value = moi.ip;
+        localiser(moi.ip, null);
+        $('titre-etape2').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     });
 
     // le score reste visible en haut à droite quand l'en-tête disparaît

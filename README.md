@@ -7,6 +7,10 @@ on obtient ses **adresses IP** (DNS), puis le **pays** du serveur, affiché sur 
 sur Hong Kong. Pari sur le continent, points (score flottant animé), défis, passeport à tampons et tableau
 « Mes découvertes » pour remplir la fiche.
 
+En haut de la page, l'encadré **« Toi sur Internet »** affiche l'adresse IP publique de l'élève et son pays :
+le point jaune de la carte (départ des trajets, calcul des distances) est placé au centre de ce pays.
+Si le pays n'est pas Hong Kong, l'encadré évoque un proxy ou un VPN ; si l'IP est introuvable, point par défaut à Hong Kong.
+
 Exemples vérifiés (base 2026-10) : alibaba.com → États-Unis ; pix.fr → États-Unis (CDN Imperva), laposte.fr → France.
 
 ## Pourquoi c'est fiable en classe
@@ -14,6 +18,7 @@ Exemples vérifiés (base 2026-10) : alibaba.com → États-Unis ; pix.fr → É
 | Fonction | Comment | Si ça bloque |
 |---|---|---|
 | Nom → IP | Annuaires DNS-over-HTTPS : Google, puis Cloudflare (4 s max chacun) | **Mode secours** : 48 sites connus résolus à l'avance (`docs/data/hors-ligne.js`) |
+| Mon IP | ipify, puis Cloudflare (4 s max chacun) | Point jaune par défaut à Hong Kong, et c'est écrit |
 | IP → pays | Base **DB-IP Lite** embarquée dans le site | Rien ne peut bloquer : aucune requête réseau, aucun quota |
 | Carte | SVG précalculé (Natural Earth) | Aucune bibliothèque, aucune requête |
 
@@ -56,3 +61,4 @@ outils/                  ← scripts Node (construction des données, tests jsdo
 - IP Geolocation by [DB-IP](https://db-ip.com) — licence CC BY 4.0
 - Fond de carte : [Natural Earth](https://www.naturalearthdata.com) (domaine public), via `world-atlas`
 - Annuaires : Google Public DNS, Cloudflare DNS
+- Adresse IP de l'élève : [ipify](https://www.ipify.org), secours Cloudflare (`/cdn-cgi/trace`) ; elle n'est conservée nulle part

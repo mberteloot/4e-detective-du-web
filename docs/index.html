@@ -29,6 +29,9 @@
   </div>
 
   <main>
+    <!-- TOI SUR INTERNET -->
+    <section class="moi" id="moi" aria-live="polite"></section>
+
     <!-- ÉTAPE 1 : DNS -->
     <section class="carte-etape" aria-labelledby="titre-etape1">
       <div class="etape-numero">1</div>
@@ -74,7 +77,7 @@
 
         <figure class="carte-monde">
           <svg id="carte" role="img" aria-label="Carte du monde"></svg>
-          <figcaption>Carte centrée sur le Pacifique : le point jaune, c'est toi à Hong Kong.</figcaption>
+          <figcaption id="legende-carte">Carte centrée sur le Pacifique : le point jaune, c'est toi.</figcaption>
         </figure>
       </div>
     </section>
@@ -107,7 +110,7 @@
   </main>
 
   <footer class="pied">
-    <p>🔒 Cette page n'enregistre rien sur toi : ton carnet reste uniquement dans ce navigateur.</p>
+    <p>🔒 Cette page n'enregistre rien sur toi : ton carnet reste uniquement dans ce navigateur. Ton adresse IP est demandée à ipify (ou Cloudflare) pour te l'afficher, elle n'est conservée nulle part.</p>
     <p class="sources">
       Annuaire : Google Public DNS, Cloudflare ·
       <a href="https://db-ip.com" target="_blank" rel="noopener">IP Geolocation by DB-IP</a> (CC BY 4.0, <span id="version-base"></span>) ·

@@ -79,6 +79,7 @@ function reponseDns(ips, alias = []) {
   // ------------------------------------------------------------- cas d'IP
   console.log('Cas particuliers d\'IP');
   const w = chargerSite(async (url) => {
+    if (url.includes('ipify')) return { ok: true, json: async () => ({ ip: '8.8.8.8' }) };
     if (url.includes('alibaba.com')) return reponseDns(['47.246.131.198', '47.246.137.105'], ['alibaba.com.gds.alibabadns.com']);
     if (url.includes('existepas')) return { ok: true, json: async () => ({ Status: 3 }) };
     if (url.includes('name=gov.hk')) return { ok: true, json: async () => ({ Status: 0 }) };
@@ -86,6 +87,16 @@ function reponseDns(ips, alias = []) {
     return reponseDns(['193.57.128.103']);
   });
   const d = w.document;
+  await attendre(50);
+  console.log('Toi sur Internet');
+  verifier(/8\.8\.8\.8/.test(texte(w, 'moi')) && /États-Unis/.test(texte(w, 'moi')), 'IP de l\'élève et pays affichés : ' + texte(w, 'moi').slice(0, 90));
+  verifier(/serveur intermédiaire/.test(texte(w, 'moi')), 'pays différent de HK → explication proxy / VPN');
+  verifier(/placé grâce à ton adresse IP \(8\.8\.8\.8\)/.test(texte(w, 'legende-carte')), 'légende de la carte : point jaune placé grâce à l\'IP');
+  const centreUS = w.CARTE.centres.US;
+  verifier(Number(d.getElementById('moi-point').getAttribute('cx')) === centreUS[0], 'point jaune déplacé au centre des États-Unis');
+  d.getElementById('localiser-moi').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  d.getElementById('pari-passer').click();
+  verifier(/C'est toi/.test(texte(w, 'resultat-ip')), 'bouton « Localiser mon adresse » → « C\'est toi ! »');
   const saisirIP = (ip) => {
     d.getElementById('saisie-ip').value = ip;
     d.getElementById('form-ip').dispatchEvent(new w.Event('submit', { cancelable: true }));
@@ -117,7 +128,7 @@ function reponseDns(ips, alias = []) {
   verifier(/www\.alibaba\.com/.test(resIP), 'le nom du site est rappelé avec le pays');
   verifier(d.querySelectorAll('#tampons .tampon').length === 2, 'deux tampons dans le passeport (Cloudflare + alibaba)');
   verifier(d.querySelector('#defis li.reussi') !== null, 'défis réussis cochés (plusieurs IP, alibaba)');
-  verifier(d.querySelectorAll('#historique tr').length === 2, 'deux lignes dans « Mes découvertes »');
+  verifier(d.querySelectorAll('#historique tr').length === 3, 'trois lignes dans « Mes découvertes » (mon IP, Cloudflare, alibaba)');
   verifier(d.querySelector('#calque-trajet .epingle') !== null, 'épingle posée sur la carte');
   await attendre(2500); // les gains s'affichent l'un après l'autre
   verifier(Number(texte(w, 'score')) > 0, 'score animé : ' + texte(w, 'score') + ' points');
@@ -145,6 +156,8 @@ function reponseDns(ips, alias = []) {
   ds.getElementById('form-dns').dispatchEvent(new ws.Event('submit', { cancelable: true }));
   await attendre();
   verifier(!ds.getElementById('bandeau-secours').hidden, 'bandeau « mode secours » affiché');
+  verifier(/par défaut à Hong Kong/.test(texte(ws, 'moi')) && /par défaut à Hong Kong/.test(texte(ws, 'legende-carte')),
+    'IP introuvable → point jaune par défaut à Hong Kong, et c\'est écrit');
   verifier(ds.querySelectorAll('.bouton-ip').length > 0 && /liste de secours/.test(texte(ws, 'resultat-dns')), 'tiktok.com trouvé dans la liste de secours');
   ds.getElementById('saisie-domaine').value = 'sitepasdanslaliste.com';
   ds.getElementById('form-dns').dispatchEvent(new ws.Event('submit', { cancelable: true }));
